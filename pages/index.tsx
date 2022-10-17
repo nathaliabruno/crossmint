@@ -1,6 +1,6 @@
-import Link from 'next/link'
-import type { InferGetStaticPropsType } from 'next'
-import type { Goal } from "../types/crossmint";
+import type { InferGetStaticPropsType } from "next";
+import type { Goal, Polyanets, Comeths, Soloons } from "../types/crossmint";
+import { useState, useEffect } from "react";
 
 export async function getStaticProps() {
   const res = await fetch(
@@ -14,138 +14,173 @@ export async function getStaticProps() {
   };
 }
 
-export default function IndexPage({ goal }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const candidateId = "10d40d76-86da-4e0f-8c59-20c41b069e2d";
-  const myHeaders = new Headers();
-  myHeaders.append("Content-Type", "application/json");
+export default function IndexPage({
+  goal,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
+  const [polyanets, setPolyanets] = useState([]);
+  const [comeths, setComeths] = useState([]);
+  const [soloons, setSoloons] = useState([]);
+  const [stateError, setStateError] = useState([]);
 
-  const fetchMegaverse = (endpoint, options, position) => {
-    const requestOptions = {
-      method: "POST",
-      headers: myHeaders,
-      body: options,
-      redirect: "follow",
-    };
-    console.log(endpoint, position);
-    // fetch(`https://challenge.crossmint.io/api/${endpoint}`, requestOptions)
-    //       .then((response) => response.text())
-    //       .then((result) => console.log(result, position))
-    //       .catch((error) => console.log("error", error));
-  };
-
-  const printMegaverse = (item, row, col) => {
-    let body = "";
+  const createMegaverse = (item, row, col) => {
     switch (item) {
       case "POLYANET":
-        body = JSON.stringify({
-          candidateId: candidateId,
-          row: row,
-          column: col,
-        });
-
-        fetchMegaverse("polyanets", body, `[${row}, ${col}]`);
-
+        setPolyanets((polyanets) => [
+          ...polyanets,
+          {
+            row: row,
+            column: col,
+          },
+        ]);
         break;
-
       case "LEFT_COMETH":
-        body = JSON.stringify({
-          candidateId: candidateId,
-          row: row,
-          column: col,
-          direction: "left",
-        });
-
-        fetchMegaverse("comeths", body, `[${row}, ${col}]`);
+        setComeths((comeths) => [
+          ...comeths,
+          {
+            row: row,
+            column: col,
+            direction: "left",
+          },
+        ]);
         break;
       case "UP_COMETH":
-        body = JSON.stringify({
-          candidateId: candidateId,
-          row: row,
-          column: col,
-          direction: "up",
-        });
-
-        fetchMegaverse("comeths", body, `[${row}, ${col}]`);
+        setComeths((comeths) => [
+          ...comeths,
+          {
+            row: row,
+            column: col,
+            direction: "up",
+          },
+        ]);
         break;
       case "DOWN_COMETH":
-        body = JSON.stringify({
-          candidateId: candidateId,
-          row: row,
-          column: col,
-          direction: "down",
-        });
-
-        fetchMegaverse("comeths", body, `[${row}, ${col}]`);
+        setComeths((comeths) => [
+          ...comeths,
+          {
+            row: row,
+            column: col,
+            direction: "down",
+          },
+        ]);
         break;
       case "RIGHT_COMETH":
-        body = JSON.stringify({
-          candidateId: candidateId,
-          row: row,
-          column: col,
-          direction: "right",
-        });
-
-        fetchMegaverse("comeths", body, `[${row}, ${col}]`);
+        setComeths((comeths) => [
+          ...comeths,
+          {
+            row: row,
+            column: col,
+            direction: "right",
+          },
+        ]);
         break;
-
       case "BLUE_SOLOON":
-        body = JSON.stringify({
-          candidateId: candidateId,
-          row: row,
-          column: col,
-          color: "blue",
-        });
-
-        fetchMegaverse("comeths", body, `[${row}, ${col}]`);
+        setSoloons((soloons) => [
+          ...soloons,
+          {
+            row: row,
+            column: col,
+            color: "blue",
+          },
+        ]);
         break;
       case "RED_SOLOON":
-        body = JSON.stringify({
-          candidateId: candidateId,
-          row: row,
-          column: col,
-          color: "red",
-        });
-
-        fetchMegaverse("comeths", body, `[${row}, ${col}]`);
+        setSoloons((soloons) => [
+          ...soloons,
+          {
+            row: row,
+            column: col,
+            color: "red",
+          },
+        ]);
         break;
       case "PURPLE_SOLOON":
-        body = JSON.stringify({
-          candidateId: candidateId,
-          row: row,
-          column: col,
-          color: "purple",
-        });
-
-        fetchMegaverse("comeths", body, `[${row}, ${col}]`);
+        setSoloons((soloons) => [
+          ...soloons,
+          {
+            row: row,
+            column: col,
+            color: "purple",
+          },
+        ]);
         break;
       case "WHITE_SOLOON":
-        body = JSON.stringify({
-          candidateId: candidateId,
-          row: row,
-          column: col,
-          color: "white",
-        });
-
-        fetchMegaverse("comeths", body, `[${row}, ${col}]`);
+        setSoloons((soloons) => [
+          ...soloons,
+          {
+            row: row,
+            column: col,
+            color: "white",
+          },
+        ]);
         break;
       default:
         break;
     }
   };
-
-  console.table(goal);
-  goal.map((row, rowIndex) => {
-    row.map((column, colIndex) => {
-      // console.log(column, rowIndex, colIndex);
-      printMegaverse(column, colIndex, rowIndex);
+  useEffect(() => {
+    goal.map((column, colIndex) => {
+      column.map((row, rowIndex) => {
+        createMegaverse(row, colIndex, rowIndex);
+      });
     });
-  });
+  }, []);
+
+  const candidateId = "10d40d76-86da-4e0f-8c59-20c41b069e2d";
+  const myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+  myHeaders.append("Access-Control-Allow-Origin", "*");
+  const sleep = (milliseconds) => {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  };
+
+  const postMegaverse = async (endpoint, options, row, column) => {
+    const requestOptions = {
+      method: "POST",
+      headers: myHeaders,
+      body: options,
+    };
+    const request = await fetch(
+      `https://challenge.crossmint.io/api/${endpoint}`,
+      requestOptions
+    )
+      .then((response) => response.text())
+      .then((result) => console.log(result, row, column))
+      .catch((error) =>
+        setStateError((value) => [
+          ...value,
+          {
+            endpoint: endpoint,
+            row: row,
+            column: column,
+            color: requestOptions.body.color,
+            direction: requestOptions.body.direction,
+          },
+        ])
+      );
+
+    return await request;
+  };
+
+  const createSoloons = () => {
+    soloons.map(async (soloon) => {
+      let body = JSON.stringify({
+        candidateId: candidateId,
+        row: soloon.row,
+        column: soloon.column,
+        color: soloon.color,
+      });
+
+      await sleep(500);
+      postMegaverse("soloons", body, soloon.row, soloon.column);
+    });
+  };
+
+  console.log(stateError);
   return (
     <>
-      {/* <p>Next.js has {stars} ⭐️</p> */}
-      <Link href="/preact-stars">
-        <a>How about preact?</a>
-      </Link>
+      <h1>Let's create the megaverse!</h1>
+
+      <button onClick={createSoloons}>Add Soloons</button>
     </>
   );
 }
