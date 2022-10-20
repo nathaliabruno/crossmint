@@ -1,6 +1,7 @@
 import type { InferGetStaticPropsType } from "next";
-import type { Goal, Polyanets, Comeths, Soloons } from "../types/crossmint";
+import type { Goal } from "../types/crossmint";
 import { useState, useEffect } from "react";
+import { debounce } from "../utils";
 
 export async function getStaticProps() {
   const res = await fetch(
@@ -129,40 +130,75 @@ export default function IndexPage({
   const myHeaders = new Headers();
   myHeaders.append("Content-Type", "application/json");
   myHeaders.append("Access-Control-Allow-Origin", "*");
-  const sleep = (milliseconds) => {
-    return new Promise((resolve) => setTimeout(resolve, milliseconds));
-  };
 
-  const postMegaverse = async (endpoint, options, row, column) => {
+  const postMegaverse = (endpoint, options, row, column) => {
     const requestOptions = {
       method: "POST",
       headers: myHeaders,
       body: options,
     };
-    const request = await fetch(
-      `https://challenge.crossmint.io/api/${endpoint}`,
-      requestOptions
-    )
-      .then((response) => response.text())
-      .then((result) => console.log(result, row, column))
-      .catch((error) =>
-        setStateError((value) => [
-          ...value,
-          {
-            endpoint: endpoint,
-            row: row,
-            column: column,
-            color: requestOptions.body.color,
-            direction: requestOptions.body.direction,
-          },
-        ])
-      );
 
-    return await request;
+    const optionsJSON = JSON.parse(options);
+
+    debounce(
+      fetch(`https://challenge.crossmint.io/api/${endpoint}`, requestOptions)
+        .then((response) => response.text())
+        .then((result) => console.log(result, row, column))
+        .catch((error) =>
+          setStateError((value) => [
+            ...value,
+            {
+              id: `${value.length}-${endpoint}-${row}-${column}`,
+              endpoint: endpoint,
+              row: row,
+              column: column,
+              color: optionsJSON.color,
+              direction: optionsJSON.direction,
+            },
+          ])
+        ),
+      5000
+    );
+  };
+
+  const reprocessErrors = () => {
+    stateError.map((error) => {
+      let body = JSON.stringify({
+        candidateId: candidateId,
+        row: error.row,
+        column: error.column,
+        color: error.color,
+        direction: error.direction,
+      });
+      debounce(
+        postMegaverse(error.endpoint, body, error.row, error.column),
+        10000
+      );
+    });
+    setStateError([]);
+  };
+
+  const retryOne = (error) => {
+    let body = JSON.stringify({
+      candidateId: candidateId,
+      row: error.row,
+      column: error.column,
+      color: error.color,
+      direction: error.direction,
+    });
+    debounce(
+      postMegaverse(error.endpoint, body, error.row, error.column),
+      10000
+    );
+
+    const removeIndex = stateError.map((item) => item.id.indexOf(error.id));
+    let duplicatedArray = [...stateError];
+    removeIndex && duplicatedArray.splice(removeIndex, 1);
+    setStateError(duplicatedArray);
   };
 
   const createSoloons = () => {
-    soloons.map(async (soloon) => {
+    soloons.forEach(async (soloon) => {
       let body = JSON.stringify({
         candidateId: candidateId,
         row: soloon.row,
@@ -170,8 +206,33 @@ export default function IndexPage({
         color: soloon.color,
       });
 
-      await sleep(500);
-      postMegaverse("soloons", body, soloon.row, soloon.column);
+      await postMegaverse("soloons", body, soloon.row, soloon.column);
+    });
+  };
+  const createPolyanets = () => {
+    polyanets.forEach(async (polyanet) => {
+      let body = JSON.stringify({
+        candidateId: candidateId,
+        row: polyanet.row,
+        column: polyanet.column,
+      });
+
+      debounce(
+        await postMegaverse("polyanets", body, polyanet.row, polyanet.column),
+        1000
+      );
+    });
+  };
+  const createComeths = () => {
+    comeths.forEach(async (cometh) => {
+      let body = JSON.stringify({
+        candidateId: candidateId,
+        row: cometh.row,
+        column: cometh.column,
+        direction: cometh.direction,
+      });
+
+      await postMegaverse("comeths", body, cometh.row, cometh.column);
     });
   };
 
@@ -181,6 +242,33 @@ export default function IndexPage({
       <h1>Let's create the megaverse!</h1>
 
       <button onClick={createSoloons}>Add Soloons</button>
+      <br />
+      <br />
+      <button onClick={createComeths}>Add Comeths</button>
+      <br />
+      <br />
+      <button onClick={createPolyanets}>Add Polyanets</button>
+      <br />
+      <table>
+        <thead>
+          <tr>
+            <th>Element</th>
+            <th>Row</th>
+            <th>Column</th>
+            <th>
+              <button onClick={reprocessErrors}>Retry errors</button>
+            </th>
+          </tr>
+        </thead>
+        {stateError.map((error) => (
+          <tr key={error.id}>
+            <td>{error.endpoint}</td>
+            <td>{error.row}</td>
+            <td>{error.column}</td>
+            <td>{/* <button onClick={retryOne}>Retry</button> */}</td>
+          </tr>
+        ))}
+      </table>
     </>
   );
 }
